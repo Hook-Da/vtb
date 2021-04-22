@@ -1,13 +1,15 @@
-import { CurrencyItem } from './../Model/Currency'
+import { CurrencyItem, Currency } from './../Model/Currency'
 import { ApiHelperInterface } from './../Helpers/ApiHelper';
 import { store } from './../Store/AppStore';
 
 export interface CurrencyProviderInterface {
     getCurrencyItems() : void
     setApiProperty(api: ApiHelperInterface<any>): void
-    onSuccess(items: [CurrencyItem]): void
+    onSuccess(items: { [key: string] : Currency }): void
     onError(error: any): void
 }
+
+let INTERVAL_HANDLER = 0
 
 class CurrencyProvider implements CurrencyProviderInterface {
     private static _shared: CurrencyProvider = new CurrencyProvider()
@@ -17,7 +19,6 @@ class CurrencyProvider implements CurrencyProviderInterface {
     private constructor() {}
 
     public static getInstance(): CurrencyProvider {
-        console.log('%c++[   here     ]','background: blue', );
         return CurrencyProvider._shared
     }
     
@@ -26,17 +27,39 @@ class CurrencyProvider implements CurrencyProviderInterface {
         return this
     }
 
-    getCurrencyItems(){
+    pageRemovedFromFocus = () => {
+        clearInterval(INTERVAL_HANDLER)
+    }
+
+    getCurrencyItems = () => {
+        if (INTERVAL_HANDLER) {
+            clearInterval(INTERVAL_HANDLER)
+        }
         let endpoint = "command=returnTicker"
         this.api?.apiGet(endpoint, this.onSuccess, this.onError)
+        INTERVAL_HANDLER = setInterval(() => {
+            console.log('%c++[   here  2   ]','background: lime', );
+            this.api?.apiGet(endpoint, this.onSuccess, this.onError)
+        }, 5000)
     }
 
-
-    onSuccess(items: [CurrencyItem]) {
-        console.log('%c++[   here items     ]','background: lime', items);
+    toggleError = (happened: Boolean) => {
+        store.errorOccured = happened
     }
 
-    onError(error: any) {
+    onSuccess = (items: { [key: string] : Currency }) => {
+        let keys = Object.keys(items)
+        let currencyArray = keys.map((key) => {
+            let changeDirection = +items[key].percentChange > 0
+            let tempObj = { tickerName: key, changeDirection, ...items[key]}
+            return tempObj
+        })
+        this.toggleError(false)
+       store.currencyItems = currencyArray
+    }
+
+    onError = (error: any) => {
+        this.toggleError(true)
         console.log('%c++[   here error     ]','background: red', error);
     }
 

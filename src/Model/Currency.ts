@@ -1,4 +1,4 @@
-interface Currency {
+export interface Currency {
     id: number;
     last: String;
     lowestAsk: String;
@@ -14,4 +14,9 @@ interface Currency {
 
 export interface CurrencyItem {
     [key: String]: Currency;
+}
+
+export interface FinalCurrencyObj extends Currency {
+    tickerName: String,
+    changeDirection: Boolean
 }
